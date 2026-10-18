@@ -291,8 +291,8 @@ async def about_page():
                 <div class="text-xs text-slate-400 font-semibold">📦 مخزن سورس‌کد</div>
                 <div class="text-white font-medium">گیت‌هاب (GitHub)</div>
                 <div class="text-xs">
-                    <a href="https://github.com/mehdichamani/clip-srt-vps" target="_blank" class="text-indigo-400 hover:underline break-all">
-                        github.com/mehdichamani/clip-srt-vps
+                    <a href="https://github.com/mehdichamani/SubCraft" target="_blank" class="text-indigo-400 hover:underline break-all">
+                        github.com/mehdichamani/SubCraft
                     </a>
                 </div>
             </div>
@@ -328,7 +328,7 @@ async def api_about():
         "version": settings.app_version,
         "environment": "beta",
         "developer": "Mehdi Chamani",
-        "repository": "https://github.com/mehdichamani/clip-srt-vps",
+        "repository": "https://github.com/mehdichamani/SubCraft",
         "hosting": "Render.com"
     }
 

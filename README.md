@@ -60,8 +60,8 @@ Make sure you have Docker and Docker Compose installed on your machine or VPS.
 
 ```bash
 # 1. Clone the repository from GitHub
-git clone https://github.com/mehdichamani/clip-srt-vps.git
-cd clip-srt-vps
+git clone https://github.com/mehdichamani/SubCraft.git
+cd SubCraft
 
 # 2. Prepare environment file
 cp .env.example .env
@@ -113,7 +113,7 @@ Render supports deploying this repository directly using **Docker** runtime buil
 #### Step 1: Connect GitHub Repository to Render
 1. Log in to [Render Dashboard](https://dashboard.render.com/).
 2. Click **New +** -> **Web Service**.
-3. Connect your GitHub repository `https://github.com/mehdichamani/clip-srt-vps`.
+3. Connect your GitHub repository `https://github.com/mehdichamani/SubCraft`.
 4. Select **Docker** as the Environment / Runtime (Render automatically detects `Dockerfile`).
 
 #### Step 2: Configure YouTube & Instagram Cookies via Base64 Encoding
@@ -145,7 +145,7 @@ Add the following Environment Variables in your Render Web Service settings:
 | `TELEGRAM_BOT_TOKEN` | **Yes** | Telegram Bot token from [@BotFather](https://t.me/BotFather) | `123456789:ABCdef...` |
 | `GROQ_API_KEY` | **Yes** | Groq API Key for Whisper STT & LLM Translation from [Groq Console](https://console.groq.com/) | `gsk_...` |
 | `GEMINI_API_KEY` | Optional | Optional Google Gemini API key from [Google AI Studio](https://aistudio.google.com/) for fallback | `AIzaSy...` |
-| `RENDER_EXTERNAL_URL` | **Yes** | Public Render service HTTPS URL (No trailing slash) | `https://clip-srt-vps.onrender.com` |
+| `RENDER_EXTERNAL_URL` | **Yes** | Public Render service HTTPS URL (No trailing slash) | `https://subcraft.onrender.com` |
 | `WEBHOOK_SECRET` | Optional | Secret token for secure webhook authorization | `random_secret_string` |
 | `YOUTUBE_COOKIES` | Optional | Base64-encoded string of YouTube cookies for `yt-dlp` | `IyBOZXRzY2FwZSBDb29raWU...` |
 | `INSTAGRAM_COOKIES` | Optional | Base64-encoded string of Instagram cookies for `yt-dlp` | `IyBOZXRzY2FwZSBDb29raWU...` |
@@ -156,7 +156,7 @@ Add the following Environment Variables in your Render Web Service settings:
 
 ### 👤 Developer & Repository Branding
 
-- **Repository:** [mehdichamani/clip-srt-vps](https://github.com/mehdichamani/clip-srt-vps)
+- **Repository:** [mehdichamani/SubCraft](https://github.com/mehdichamani/SubCraft)
 - **Developer:** **Mehdi Chamani** (مهدی چمنی)
 - **Email:** `mahdi.chamani20@gmail.com`
 - **Telegram:** [@mehdichamanni](https://t.me/mehdichamanni)
@@ -205,8 +205,8 @@ Add the following Environment Variables in your Render Web Service settings:
 
 ```bash
 # ۱. دریافت مخزن پروژه از گیت‌هاب
-git clone https://github.com/mehdichamani/clip-srt-vps.git
-cd clip-srt-vps
+git clone https://github.com/mehdichamani/SubCraft.git
+cd SubCraft
 
 # ۲. ایجاد و تنظیم فایل متغیرهای محیطی
 cp .env.example .env
@@ -244,7 +244,7 @@ services:
 #### گام اول: اتصال مخزن گیت‌هاب به Render
 ۱. وارد حساب کاربری خود در [Render.com](https://dashboard.render.com/) شوید.
 ۲. روی گزینه **New +** و سپس **Web Service** کلیک کنید.
-۳. مخزن گیت‌هاب `https://github.com/mehdichamani/clip-srt-vps` را متصل کنید.
+۳. مخزن گیت‌هاب `https://github.com/mehdichamani/SubCraft` را متصل کنید.
 ۴. نوع محیط اجرا (Runtime) را روی **Docker** قرار دهید (Render به صورت خودکار `Dockerfile` موجود در مخزن را شناسایی می‌کند).
 
 #### گام دوم: تنظیم کوکی‌های یوتیوب و اینستاگرام با فرمت Base64
@@ -275,7 +275,7 @@ services:
 | `TELEGRAM_BOT_TOKEN` | **بله** | توکن ربات دریافتی از [@BotFather](https://t.me/BotFather) | `123456789:ABCdef...` |
 | `GROQ_API_KEY` | **بله** | کلید API سرور Groq برای تبدیل گفتار به متن و ترجمه هوشمند | `gsk_...` |
 | `GEMINI_API_KEY` | اختیاری | کلید API جمینای از Google AI Studio برای جایگزین موقت (Fallback) | `AIzaSy...` |
-| `RENDER_EXTERNAL_URL` | **بله** | آدرس عمومی HTTPS سرویس رندر برای ثبت وب‌هوک | `https://clip-srt-vps.onrender.com` |
+| `RENDER_EXTERNAL_URL` | **بله** | آدرس عمومی HTTPS سرویس رندر برای ثبت وب‌هوک | `https://subcraft.onrender.com` |
 | `WEBHOOK_SECRET` | اختیاری | توکن امنیتی وب‌هوک جهت تایید درگاه | `random_secret_string` |
 | `YOUTUBE_COOKIES` | اختیاری | رشته Base64 شده فایل کوکی یوتیوب برای دانلود ویدیوها | `IyBOZXRzY2FwZSBDb29raWU...` |
 | `INSTAGRAM_COOKIES` | اختیاری | رشته Base64 شده فایل `cookies.txt` برای دانلود از اینستاگرام | `IyBOZXRzY2FwZSBDb29raWU...` |
@@ -288,5 +288,5 @@ services:
 - **توسعه‌دهنده:** **مهدی چمنی**
 - **ایمیل:** `mahdi.chamani20@gmail.com`
 - **تلگرام:** [@mehdichamanni](https://t.me/mehdichamanni)
-- **مخزن گیت‌هاب:** [https://github.com/mehdichamani/clip-srt-vps](https://github.com/mehdichamani/clip-srt-vps)
+- **مخزن گیت‌هاب:** [https://github.com/mehdichamani/SubCraft](https://github.com/mehdichamani/SubCraft)
 - **میزبانی شده در:** [Render.com](https://render.com) (توسط Docker Runtime)

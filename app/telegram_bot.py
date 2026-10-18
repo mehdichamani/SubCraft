@@ -195,7 +195,7 @@ async def about_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         "📧 <b>ایمیل:</b> <code>mahdi.chamani20@gmail.com</code>\n"
         "💬 <b>تلگرام:</b> <a href=\"https://t.me/mehdichamanni\">@mehdichamanni</a>\n\n"
         "📦 <b>مخزن گیت‌هاب (GitHub):</b>\n"
-        "🔗 <a href=\"https://github.com/mehdichamani/clip-srt-vps\">github.com/mehdichamani/clip-srt-vps</a>\n\n"
+        "🔗 <a href=\"https://github.com/mehdichamani/SubCraft\">github.com/mehdichamani/SubCraft</a>\n\n"
         "🛠 <b>تکنولوژی‌های استفاده شده (Tech Stack):</b>\n"
         "• <b>دانلود رسانه:</b> yt-dlp & PTB API\n"
         "• <b>پردازش رسانه:</b> FFmpeg (16kHz Audio Extraction & Soft Subtitle Remuxing) + Mutagen (ID3 Synced LRC)\n"
@@ -430,7 +430,7 @@ async def process_media_job(update: Update, context: ContextTypes.DEFAULT_TYPE, 
             'timestamp': time.time()
         })
 
-        help_url = f"{settings.render_external_url.rstrip('/')}/translation-help" if settings.render_external_url else "https://github.com/mehdichamani/clip-srt-vps"
+        help_url = f"{settings.render_external_url.rstrip('/')}/translation-help" if settings.render_external_url else "https://github.com/mehdichamani/SubCraft"
 
         # Send completion options with 6 format/engine choices, Help link, and Cancel button
         keyboard = [
