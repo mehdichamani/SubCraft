@@ -8,14 +8,17 @@ from typing import Optional
 
 import uvicorn
 from fastapi import FastAPI, Header, HTTPException, Request, Depends, Query, status
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from pydantic import BaseModel
 from telegram import Update
 
 from app.config import settings
 from app.telegram_bot import create_telegram_application
 from app.services.job_tracker import job_tracker
 from app.services.cookie_manager import cookie_manager
+from app.services.storage_cleaner import OutputStorageManager
+from app.services.web_processor import web_processor
 
 # Configure Structured Logging
 logging.basicConfig(
@@ -231,8 +234,6 @@ async def get_translation_help():
     )
 
 
-@app.get("/")
-@app.head("/")
 @app.get("/health")
 @app.head("/health")
 async def health_check():
@@ -368,7 +369,399 @@ async def telegram_webhook(
         return {"status": "error", "detail": str(e)}
 
 
-from pydantic import BaseModel
+class WebProcessRequest(BaseModel):
+    url: str
+    output_format: str = "mkv"
+    language_mode: str = "bilingual"
+    engine: str = "ai"
+
+
+@app.post("/api/web-process")
+async def start_web_process(payload: WebProcessRequest):
+    """Initiates media download and transcription/translation in background."""
+    try:
+        task_id = await web_processor.create_job(
+            url=payload.url,
+            output_format=payload.output_format,
+            language_mode=payload.language_mode,
+            engine=payload.engine
+        )
+        return {"status": "success", "task_id": task_id}
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@app.get("/api/web-process/{task_id}")
+async def check_web_process(task_id: str):
+    """Returns real-time execution status and progress for web studio task."""
+    job = web_processor.get_job_status(task_id)
+    if not job:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="تسک یافت نشد یا منقضی شده است.")
+    return job
+
+
+@app.get("/api/web-download/{task_id}")
+async def download_web_file(task_id: str):
+    """Directly serves and streams processed output file from FIFO retention buffer."""
+    file_path = OutputStorageManager.get_file_for_task(task_id)
+    if not file_path or not file_path.exists():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="فایل یافت نشد یا در بافر چرخشی حذف شده است.")
+
+    clean_filename = file_path.name.split("_", 1)[-1]
+    return FileResponse(
+        path=str(file_path),
+        filename=clean_filename,
+        media_type="application/octet-stream"
+    )
+
+
+@app.get("/api/recent-files")
+async def get_recent_files():
+    """Returns top 10 recent processed output files retained on server."""
+    return OutputStorageManager.list_recent_outputs()
+
+
+@app.get("/", response_class=HTMLResponse)
+@app.get("/dashboard", response_class=HTMLResponse)
+async def web_studio_page():
+    """Renders the public Web Studio interface with interactive form, live progress, and 10 recent downloads."""
+    recent_files = OutputStorageManager.list_recent_outputs()
+    recent_html = ""
+    if not recent_files:
+        recent_html = '<div class="text-xs text-slate-500 py-3 text-center">هیچ فایل اخیری در حافظه سرور موجود نیست.</div>'
+    else:
+        for rf in recent_files:
+            badge_color = "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
+            if rf['format'] == 'MP3':
+                badge_color = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+            elif rf['format'] == 'SRT':
+                badge_color = "bg-amber-500/10 text-amber-400 border-amber-500/20"
+
+            recent_html += f"""
+            <div class="flex items-center justify-between p-3 bg-slate-900/60 border border-slate-800/80 rounded-xl hover:border-slate-700 transition text-xs">
+                <div class="flex items-center gap-2.5 overflow-hidden">
+                    <span class="px-2 py-0.5 rounded-md border text-[10px] font-bold {badge_color}">{rf['format']}</span>
+                    <span class="truncate max-w-[200px] sm:max-w-xs text-slate-200" title="{html.escape(rf['display_name'])}">{html.escape(rf['display_name'])}</span>
+                    <span class="text-slate-500 text-[11px]">({rf['size_mb']} MB)</span>
+                </div>
+                <a href="{rf['download_url']}" class="shrink-0 flex items-center gap-1 bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white px-2.5 py-1.5 rounded-lg font-medium transition">
+                    ⬇️ دانلود
+                </a>
+            </div>
+            """
+
+    return HTMLResponse(
+        content=f"""<!DOCTYPE html>
+<html lang="fa" dir="rtl" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SubCraft Web Studio | استودیوی پردازش زیرنویس و مدیا</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    <style>
+        body {{ font-family: 'Vazirmatn', sans-serif; }}
+        .glass-card {{
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(51, 65, 85, 0.6);
+        }}
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen py-6 px-4 sm:px-6 flex flex-col justify-between">
+    <div class="max-w-3xl w-full mx-auto space-y-6">
+        <!-- Top Bar -->
+        <header class="flex items-center justify-between pb-2 border-b border-slate-800/80">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-xl shadow-lg shadow-indigo-500/20">
+                    🎬
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+                        SubCraft Studio
+                        <span class="text-[10px] font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-full">v{settings.app_version}</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">استخراج گفتار، ترجمه هوشمند و تولید سافت‌ساب و لیریکس</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <a href="/about" class="text-xs text-slate-400 hover:text-white px-3 py-1.5 rounded-lg border border-slate-800 hover:bg-slate-900 transition">
+                    ℹ️ درباره
+                </a>
+                <a href="/admin" class="text-xs text-indigo-400 hover:text-indigo-300 px-3 py-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 transition flex items-center gap-1 font-medium">
+                    🔐 پنل ادمین
+                </a>
+            </div>
+        </header>
+
+        <!-- Studio Main Form -->
+        <main class="glass-card rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
+            <div>
+                <h2 class="text-base font-bold text-white mb-1">🔗 وارد کردن لینک رسانه</h2>
+                <p class="text-xs text-slate-400">پشتیبانی از یوتیوب، ریلز اینستاگرام، تیک‌تاک، توییتر (X) یا لینک مستقیم فایل</p>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <input type="url" id="mediaUrl" dir="ltr" placeholder="https://www.youtube.com/watch?v=... or Instagram Reel URL"
+                        class="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition font-mono">
+                </div>
+
+                <!-- Customization Options -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                    <!-- Format -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1.5">📦 فرمت خروجی</label>
+                        <select id="outputFormat" class="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+                            <option value="mkv" selected>🎬 ویدیوی سافت‌ساب (MKV)</option>
+                            <option value="mp3">🎵 فایل صوتی با لیریکس (MP3)</option>
+                            <option value="srt">📄 فایل زیرنویس (SRT)</option>
+                            <option value="txt">📝 متن خالص پیوسته (TXT)</option>
+                        </select>
+                    </div>
+
+                    <!-- Language Mode -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1.5">🌐 حالت زبانی</label>
+                        <select id="languageMode" class="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+                            <option value="bilingual" selected>🌐 دوزبانه متناوب (انگلیسی + فارسی)</option>
+                            <option value="translation_only">🇮🇷 فقط ترجمه فارسی</option>
+                            <option value="original_only">🔤 فقط متن اصلی (بدون ترجمه - سریع)</option>
+                        </select>
+                    </div>
+
+                    <!-- Translation Engine -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1.5">🧠 موتور ترجمه</label>
+                        <select id="translationEngine" class="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+                            <option value="ai" selected>🤖 هوش مصنوعی (Groq AI)</option>
+                            <option value="google">🌐 گوگل ترنسلیت (Google API)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Start Action Button -->
+                <button type="button" id="startBtn" onclick="submitStudioJob()" class="w-full py-3.5 px-4 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/30 transition flex items-center justify-center gap-2 text-sm">
+                    <span>🚀 شروع پردازش هوشمند</span>
+                </button>
+            </div>
+
+            <!-- Live Status & Progress Container -->
+            <div id="progressBox" class="hidden bg-slate-900/90 border border-slate-800 rounded-xl p-5 space-y-4">
+                <div class="flex items-center justify-between text-xs">
+                    <span id="progressText" class="font-medium text-indigo-400 flex items-center gap-2">
+                        <span class="inline-block w-2.5 h-2.5 rounded-full bg-indigo-400 animate-ping"></span>
+                        در حال شروع...
+                    </span>
+                    <span id="progressPct" class="font-mono text-slate-400">0%</span>
+                </div>
+                
+                <div class="w-full bg-slate-950 rounded-full h-2.5 overflow-hidden border border-slate-800">
+                    <div id="progressBar" class="bg-gradient-to-r from-indigo-500 to-purple-500 h-2.5 rounded-full transition-all duration-300 w-0"></div>
+                </div>
+
+                <!-- Media Details -->
+                <div id="mediaDetails" class="hidden text-xs text-slate-400 space-y-1 pt-1 border-t border-slate-800/60">
+                    <div class="flex items-center gap-2">
+                        <span class="text-slate-500">عنوان:</span>
+                        <span id="mediaTitle" class="text-slate-200 font-medium truncate"></span>
+                    </div>
+                </div>
+
+                <!-- Download Ready Box -->
+                <div id="readyBox" class="hidden pt-2">
+                    <a id="downloadBtn" href="#" class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2 text-sm">
+                        <span>⬇️ دانلود مستقیم فایل خروجی</span>
+                    </a>
+                </div>
+
+                <!-- Error Box -->
+                <div id="errorBox" class="hidden p-3 bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs rounded-xl space-y-1">
+                    <div class="font-bold flex items-center gap-1.5">❌ خطا در پردازش:</div>
+                    <div id="errorMessage" class="text-slate-300 font-mono text-[11px]"></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 10 Recent Outputs Section -->
+        <section class="glass-card rounded-2xl p-6 shadow-xl space-y-3">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                        📂 فایل‌های آماده اخیر
+                        <span class="text-[11px] font-normal text-slate-400">(صف بافر ۱۰ فایل اخیر)</span>
+                    </h3>
+                </div>
+                <button onclick="refreshRecentFiles()" class="text-xs text-slate-400 hover:text-indigo-400 transition flex items-center gap-1">
+                    🔄 تازه‌سازی
+                </button>
+            </div>
+            <div id="recentContainer" class="space-y-2">
+                {recent_html}
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="text-center text-xs text-slate-500 pt-4">
+            SubCraft • طراحی شده جهت تولید زیرنویس هوشمند بر بستر سرورهای ابری
+        </footer>
+    </div>
+
+    <script>
+        let currentTaskId = null;
+        let pollInterval = null;
+
+        async function submitStudioJob() {{
+            const urlInput = document.getElementById("mediaUrl");
+            const url = urlInput.value.trim();
+            if (!url) {{
+                alert("لطفاً ابتدا لینک ویدیو یا صوت را وارد کنید.");
+                urlInput.focus();
+                return;
+            }}
+
+            const format = document.getElementById("outputFormat").value;
+            const languageMode = document.getElementById("languageMode").value;
+            const engine = document.getElementById("translationEngine").value;
+
+            const startBtn = document.getElementById("startBtn");
+            const progressBox = document.getElementById("progressBox");
+            const progressText = document.getElementById("progressText");
+            const progressPct = document.getElementById("progressPct");
+            const progressBar = document.getElementById("progressBar");
+            const readyBox = document.getElementById("readyBox");
+            const errorBox = document.getElementById("errorBox");
+            const mediaDetails = document.getElementById("mediaDetails");
+
+            startBtn.disabled = true;
+            startBtn.classList.add("opacity-50", "cursor-not-allowed");
+            progressBox.classList.remove("hidden");
+            readyBox.classList.add("hidden");
+            errorBox.classList.add("hidden");
+            mediaDetails.classList.add("hidden");
+
+            progressBar.style.width = "10%";
+            progressPct.innerText = "10%";
+            progressText.innerText = "در حال ایجاد درخواست در سرور...";
+
+            try {{
+                const res = await fetch("/api/web-process", {{
+                    method: "POST",
+                    headers: {{ "Content-Type": "application/json" }},
+                    body: JSON.stringify({{
+                        url: url,
+                        output_format: format,
+                        language_mode: languageMode,
+                        engine: engine
+                    }})
+                }});
+
+                const data = await res.json();
+                if (!res.ok) {{
+                    throw new Error(data.detail || "خطا در برقراری ارتباط با سرور");
+                }}
+
+                currentTaskId = data.task_id;
+                pollJobStatus(currentTaskId);
+            }} catch (err) {{
+                showError(err.message);
+                startBtn.disabled = false;
+                startBtn.classList.remove("opacity-50", "cursor-not-allowed");
+            }}
+        }}
+
+        function pollJobStatus(taskId) {{
+            if (pollInterval) clearInterval(pollInterval);
+
+            pollInterval = setInterval(async () => {{
+                try {{
+                    const res = await fetch(`/api/web-process/${{taskId}}`);
+                    if (!res.ok) return;
+                    const job = await res.json();
+
+                    const progressText = document.getElementById("progressText");
+                    const progressPct = document.getElementById("progressPct");
+                    const progressBar = document.getElementById("progressBar");
+                    const mediaDetails = document.getElementById("mediaDetails");
+                    const mediaTitle = document.getElementById("mediaTitle");
+
+                    progressBar.style.width = `${{job.progress_percent}}%`;
+                    progressPct.innerText = `${{job.progress_percent}}%`;
+                    progressText.innerText = job.progress_text;
+
+                    if (job.title && job.title !== "در حال دریافت...") {{
+                        mediaDetails.classList.remove("hidden");
+                        mediaTitle.innerText = job.title;
+                    }}
+
+                    if (job.status === "ready") {{
+                        clearInterval(pollInterval);
+                        document.getElementById("readyBox").classList.remove("hidden");
+                        document.getElementById("downloadBtn").href = job.download_url;
+                        resetStartBtn();
+                        refreshRecentFiles();
+                    }} else if (job.status === "failed") {{
+                        clearInterval(pollInterval);
+                        showError(job.error || "خطای نامشخص در پردازش");
+                        resetStartBtn();
+                    }}
+                }} catch (e) {{
+                    console.error("Poll error:", e);
+                }}
+            }}, 2000);
+        }}
+
+        function showError(msg) {{
+            const errorBox = document.getElementById("errorBox");
+            const errorMessage = document.getElementById("errorMessage");
+            errorBox.classList.remove("hidden");
+            errorMessage.innerText = msg;
+            resetStartBtn();
+        }}
+
+        function resetStartBtn() {{
+            const startBtn = document.getElementById("startBtn");
+            startBtn.disabled = false;
+            startBtn.classList.remove("opacity-50", "cursor-not-allowed");
+        }}
+
+        async function refreshRecentFiles() {{
+            try {{
+                const res = await fetch("/api/recent-files");
+                if (!res.ok) return;
+                const files = await res.json();
+                const container = document.getElementById("recentContainer");
+                if (!files || files.length === 0) {{
+                    container.innerHTML = '<div class="text-xs text-slate-500 py-3 text-center">هیچ فایل اخیری در حافظه سرور موجود نیست.</div>';
+                    return;
+                }}
+                let html = "";
+                for (const f of files) {{
+                    let badgeColor = "bg-indigo-500/10 text-indigo-400 border-indigo-500/20";
+                    if (f.format === 'MP3') badgeColor = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+                    else if (f.format === 'SRT') badgeColor = "bg-amber-500/10 text-amber-400 border-amber-500/20";
+
+                    html += `
+                    <div class="flex items-center justify-between p-3 bg-slate-900/60 border border-slate-800/80 rounded-xl hover:border-slate-700 transition text-xs">
+                        <div class="flex items-center gap-2.5 overflow-hidden">
+                            <span class="px-2 py-0.5 rounded-md border text-[10px] font-bold ${{badgeColor}}">${{f.format}}</span>
+                            <span class="truncate max-w-[200px] sm:max-w-xs text-slate-200" title="${{f.display_name}}">${{f.display_name}}</span>
+                            <span class="text-slate-500 text-[11px]">(${{f.size_mb}} MB)</span>
+                        </div>
+                        <a href="${{f.download_url}}" class="shrink-0 flex items-center gap-1 bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white px-2.5 py-1.5 rounded-lg font-medium transition">
+                            ⬇️ دانلود
+                        </a>
+                    </div>
+                    `;
+                }}
+                container.innerHTML = html;
+            }} catch (e) {{}}
+        }}
+    </script>
+</body>
+</html>"""
+    )
+
 
 class CookiePayload(BaseModel):
     mode: str = "general"
@@ -476,23 +869,13 @@ async def clear_cookies_api(
     }
 
 
-@app.get("/admin")
-async def admin_redirect(key: Optional[str] = Query(None), password: Optional[str] = Query(None)):
-    """Redirect /admin to /dashboard preserving query authentication parameters."""
-    target = "/dashboard"
-    param = key or password
-    if param:
-        target += f"?key={param}"
-    return RedirectResponse(url=target)
-
-
-@app.get("/dashboard", response_class=HTMLResponse)
-async def get_dashboard(
+@app.get("/admin", response_class=HTMLResponse)
+async def get_admin_dashboard(
     key: Optional[str] = Query(None),
     password: Optional[str] = Query(None),
     credentials: Optional[HTTPBasicCredentials] = Depends(security)
 ):
-    """Dashboard UI visualizing in-memory job operations, cookie management and status logs."""
+    """Admin Dashboard UI visualizing in-memory job operations, cookie management and status logs."""
     if not verify_admin_auth(key=key, password=password, credentials=credentials):
         return HTMLResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,

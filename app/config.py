@@ -7,7 +7,7 @@ logger = logging.getLogger("clip_srt_bot")
 
 class Settings(BaseSettings):
     app_name: str = "SubCraft"
-    app_version: str = "0.8.0"
+    app_version: str = "0.9.0"
     telegram_bot_token: str = ""
     groq_api_key: str = ""
     groq_translate_model: str = "openai/gpt-oss-120b"

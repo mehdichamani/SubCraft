@@ -28,7 +28,13 @@ from app.services.translator import TranslationService
 from app.services.job_tracker import job_tracker
 from app.services.telegraph import TelegraphService
 from app.services.telegram_rich import TelegramRichService
-from app.utils.srt import merge_bilingual_srt, srt_to_alternating_text, srt_to_lrc
+from app.utils.srt import (
+    merge_bilingual_srt,
+    srt_to_alternating_text,
+    srt_to_lrc,
+    format_srt_by_language_mode,
+    srt_to_plain_text
+)
 
 logger = logging.getLogger("clip_srt_bot")
 
@@ -430,25 +436,33 @@ async def process_media_job(update: Update, context: ContextTypes.DEFAULT_TYPE, 
             'timestamp': time.time()
         })
 
+        studio_url = f"{settings.render_external_url.rstrip('/')}" if settings.render_external_url else ""
         help_url = f"{settings.render_external_url.rstrip('/')}/translation-help" if settings.render_external_url else "https://github.com/mehdichamani/SubCraft"
 
-        # Send completion options with 6 format/engine choices, Help link, and Cancel button
+        # Streamlined & Fast UI/UX Presets for Telegram
         keyboard = [
-            [InlineKeyboardButton("🎬 ویدیو با زیرنویس (گوگل ترنسلیت)", callback_data=f"opt_vid_gt_{job_id}")],
-            [InlineKeyboardButton("🎬 ویدیو با زیرنویس (هوش مصنوعی / AI)", callback_data=f"opt_vid_ai_{job_id}")],
-            [InlineKeyboardButton("🎵 آهنگ با متن (گوگل ترنسلیت)", callback_data=f"opt_mp3_gt_{job_id}")],
-            [InlineKeyboardButton("🎵 آهنگ با متن (هوش مصنوعی / AI)", callback_data=f"opt_mp3_ai_{job_id}")],
-            [InlineKeyboardButton("📄 فقط متن ترجمه (گوگل ترنسلیت)", callback_data=f"opt_txt_gt_{job_id}")],
-            [InlineKeyboardButton("📄 فقط متن ترجمه (هوش مصنوعی / AI)", callback_data=f"opt_txt_ai_{job_id}")],
-            [InlineKeyboardButton("❓ راهنما و مقایسه تفاوت موتورها", url=help_url)],
-            [InlineKeyboardButton("❌ لغو / حذف", callback_data=f"cancel_{job_id}")]
+            [InlineKeyboardButton("🎬 ویدیوی کامل دوزبانه (هوش مصنوعی 🧠)", callback_data=f"opt_vid_ai_{job_id}")],
+            [InlineKeyboardButton("⚡ ویدیوی سریع (فقط فارسی 🇮🇷)", callback_data=f"opt_vid_fa_{job_id}")],
+            [InlineKeyboardButton("🔤 ویدیوی زبان اصلی (بدون ترجمه)", callback_data=f"opt_vid_orig_{job_id}")],
+            [InlineKeyboardButton("🎵 آهنگ با لیریکس همگام (MP3)", callback_data=f"opt_mp3_ai_{job_id}")],
+            [
+                InlineKeyboardButton("📄 متن ترجمه (AI)", callback_data=f"opt_txt_ai_{job_id}"),
+                InlineKeyboardButton("📄 متن (گوگل)", callback_data=f"opt_txt_gt_{job_id}")
+            ],
+            [
+                InlineKeyboardButton("❓ راهنمای تفاوت موتورها", url=help_url),
+                InlineKeyboardButton("❌ لغو", callback_data=f"cancel_{job_id}")
+            ]
         ]
+        if studio_url:
+            keyboard.insert(5, [InlineKeyboardButton("🌐 باز کردن در استودیوی وب (تنظیمات کامل)", url=studio_url)])
+
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await safe_update_status(
             status_msg,
-            "🎙️ <b>تبدیل گفتار به متن با موفقیت انجام شد.</b>\n"
-            "لطفاً <b>فرمت خروجی</b> و <b>موتور ترجمه</b> مورد نظر خود را انتخاب کنید:",
+            "🎙️ <b>تبدیل گفتار به متن با موفقیت انجام شد!</b>\n\n"
+            "یکی از <b>حالت‌های سریع خروجی</b> زیر را انتخاب کنید:",
             reply_markup=reply_markup,
             parse_mode="HTML"
         )
@@ -521,7 +535,7 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
 
     data = query.data
     valid_prefixes = (
-        "opt_vid_gt_", "opt_vid_ai_",
+        "opt_vid_gt_", "opt_vid_ai_", "opt_vid_fa_", "opt_vid_orig_",
         "opt_mp3_gt_", "opt_mp3_ai_",
         "opt_txt_gt_", "opt_txt_ai_",
         "softsub_", "text_", "retry_", "cancel_"
@@ -587,6 +601,10 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
         action, job_id = "opt_vid_gt", data[11:]
     elif data.startswith("opt_vid_ai_"):
         action, job_id = "opt_vid_ai", data[11:]
+    elif data.startswith("opt_vid_fa_"):
+        action, job_id = "opt_vid_fa", data[11:]
+    elif data.startswith("opt_vid_orig_"):
+        action, job_id = "opt_vid_orig", data[13:]
     elif data.startswith("opt_mp3_gt_"):
         action, job_id = "opt_mp3_gt", data[11:]
     elif data.startswith("opt_mp3_ai_"):
@@ -616,27 +634,39 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
         job_tracker.update_job(job_id, status="processing")
 
         is_google = action in ("opt_vid_gt", "opt_mp3_gt", "opt_txt_gt")
-        is_video_mode = action in ("opt_vid_gt", "opt_vid_ai")
+        is_video_mode = action in ("opt_vid_gt", "opt_vid_ai", "opt_vid_fa", "opt_vid_orig")
         is_mp3_mode = action in ("opt_mp3_gt", "opt_mp3_ai")
         engine = "google" if is_google else "ai"
-        translate_method = "مترجم گوگل" if is_google else "هوش مصنوعی"
+
+        language_mode = "bilingual"
+        if action == "opt_vid_fa":
+            language_mode = "translation_only"
+            translate_method = "هوش مصنوعی (فقط ترجمه)"
+        elif action == "opt_vid_orig":
+            language_mode = "original_only"
+            translate_method = "بدون ترجمه (زبان اصلی)"
+        else:
+            translate_method = "مترجم گوگل" if is_google else "هوش مصنوعی"
 
         if is_video_mode and not is_video:
             await query.message.reply_text("⚠️ این فایل ویدیو نیست و امکان قرار دادن زیرنویس روی آن وجود ندارد. لطفاً یکی از گزینه‌های صوت MP3 یا متن را انتخاب کنید.")
             return
 
-        engine_name = "گوگل ترنسلیت" if is_google else f"هوش مصنوعی ({settings.groq_translate_model})"
-        status_msg = await query.message.reply_text(f"🌐 در حال ترجمه زیرنویس به فارسی با {engine_name}...")
+        persian_srt = None
+        if language_mode != "original_only":
+            engine_name = "گوگل ترنسلیت" if is_google else f"هوش مصنوعی ({settings.groq_translate_model})"
+            status_msg = await query.message.reply_text(f"🌐 در حال ترجمه زیرنویس به فارسی با {engine_name}...")
 
-        # Perform translation with selected engine
-        translation_service = TranslationService()
-        persian_srt = await translation_service.translate_to_persian(english_srt, engine=engine)
+            translation_service = TranslationService()
+            persian_srt = await translation_service.translate_to_persian(english_srt, engine=engine)
+        else:
+            status_msg = await query.message.reply_text("🔤 آماده‌سازی فایل زیرنویس زبان اصلی...")
 
-        # Merge into line-by-line alternating SRT
-        bilingual_srt = merge_bilingual_srt(english_srt, persian_srt)
-        srt_file_path = os.path.join(work_dir, "subtitles_bilingual.srt")
+        # Format final SRT based on language mode (bilingual, translation_only, original_only)
+        final_srt = format_srt_by_language_mode(english_srt, persian_srt, language_mode=language_mode)
+        srt_file_path = os.path.join(work_dir, "subtitles.srt")
         with open(srt_file_path, "w", encoding="utf-8") as f:
-            f.write(bilingual_srt)
+            f.write(final_srt)
 
         footer = await get_message_footer(context, channel=channel, translate_method=translate_method)
         safe_subject = html.escape(subject) if subject else "خلاصه ویدیو"
@@ -679,7 +709,7 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
             raw_audio_path = os.path.join(work_dir, "extracted_audio.mp3")
 
             # Generate Musicolet-compatible timestamped LRC text
-            lrc_content = srt_to_lrc(bilingual_srt, title=subject or "Clip Audio", artist=channel or "SubCraft")
+            lrc_content = srt_to_lrc(final_srt, title=subject or "Clip Audio", artist=channel or "SubCraft")
             
             poster_path = os.path.join(work_dir, "poster.jpg")
             cover_path = poster_path if os.path.exists(poster_path) else None
@@ -718,7 +748,7 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
                 pass
 
         else:
-            translated_text = srt_to_alternating_text(bilingual_srt)
+            translated_text = srt_to_alternating_text(final_srt)
             full_text_message = (
                 f"<b>{safe_subject}</b>\n\n"
                 f"{translated_text}\n\n"
@@ -738,7 +768,7 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
                 try:
                     # Attempt modern Telegram Rich Message (Bot API 10.1+)
                     rich_blocks = TelegramRichService.build_bilingual_blocks(
-                        bilingual_srt=bilingual_srt,
+                        bilingual_srt=final_srt,
                         subject=subject or "خلاصه و متن ترجمه",
                         footer_text=plain_footer
                     )

@@ -1,5 +1,5 @@
 import re
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 def seconds_to_srt_time(seconds: float) -> str:
     """Converts seconds (float) to SRT timestamp format HH:MM:SS,mmm."""
@@ -136,6 +136,37 @@ def srt_to_alternating_text(srt_content: str) -> str:
         for line in lines:
             text_lines.append(line)
     return "\n".join(text_lines)
+
+
+def srt_to_plain_text(srt_content: str) -> str:
+    """
+    Extracts pure text lines without index or timestamps.
+    """
+    blocks = parse_srt_blocks(srt_content)
+    text_lines = []
+    for b in blocks:
+        lines = [line.strip() for line in b['text'].splitlines() if line.strip()]
+        for line in lines:
+            text_lines.append(line)
+    return "\n".join(text_lines)
+
+
+def format_srt_by_language_mode(original_srt: str, translated_srt: Optional[str], language_mode: str = "bilingual") -> str:
+    """
+    Produces final SRT content according to the requested language mode:
+    - 'bilingual': Alternating original and Persian text.
+    - 'translation_only': Persian translation only.
+    - 'original_only': Original transcribed speech only.
+    """
+    mode = (language_mode or "bilingual").lower().strip()
+    if mode == "original_only" or not translated_srt:
+        return original_srt
+
+    if mode == "translation_only":
+        return translated_srt
+
+    # Default: bilingual
+    return merge_bilingual_srt(original_srt, translated_srt)
 
 
 def srt_time_to_lrc_time(srt_time: str) -> str:
