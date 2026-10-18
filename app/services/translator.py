@@ -74,19 +74,68 @@ class TranslationService:
         logger.info(f"Translating {len(blocks)} subtitle blocks using Google Translate API...")
 
         def _do_google_translate(blocks_list):
+            import time
+
             translator = GoogleTranslator(source="auto", target="fa")
-            texts = [b["text"] for b in blocks_list]
-            
-            # Batch translate in chunks of 50 to avoid request length limits
-            chunk_size = 50
-            translated_texts = []
-            for i in range(0, len(texts), chunk_size):
-                chunk = texts[i:i + chunk_size]
-                res = translator.translate_batch(chunk)
-                if isinstance(res, list):
-                    translated_texts.extend([str(t) if t else "" for t in res])
+            delimiter = "\n⟦§⟧\n"
+            max_char_limit = 4000
+
+            # Group blocks into chunks of at most 4000 characters
+            chunks = []
+            current_chunk = []
+            current_length = 0
+
+            for b in blocks_list:
+                clean_text = b["text"].replace(delimiter.strip(), " ").strip()
+                if not clean_text:
+                    clean_text = "..."
+                
+                # Length of text plus delimiter length
+                added_length = len(clean_text) + len(delimiter)
+                if current_chunk and (current_length + added_length > max_char_limit):
+                    chunks.append(current_chunk)
+                    current_chunk = [clean_text]
+                    current_length = len(clean_text)
                 else:
+                    current_chunk.append(clean_text)
+                    current_length += added_length
+
+            if current_chunk:
+                chunks.append(current_chunk)
+
+            logger.info(f"Split {len(blocks_list)} blocks into {len(chunks)} Google Translate chunk(s) (<= {max_char_limit} chars each).")
+
+            translated_texts = []
+            for idx, chunk in enumerate(chunks):
+                if idx > 0:
+                    time.sleep(1.0)  # Delay between chunks to prevent rate limiting
+
+                joined_text = delimiter.join(chunk)
+                try:
+                    res = translator.translate(joined_text)
+                except Exception as ex:
+                    err_msg = str(ex).lower()
+                    if "too many requests" in err_msg or "429" in err_msg:
+                        raise RuntimeError(
+                            "متن زیرنویس طولانی است و به سقف درخواست‌های مترجم گوگل رسید. "
+                            "لطفاً از موتور هوش مصنوعی (AI / Groq) برای ترجمه استفاده کنید."
+                        )
+                    raise
+
+                if not res:
                     translated_texts.extend(chunk)
+                    continue
+
+                parts = res.split("⟦§⟧")
+                if len(parts) == len(chunk):
+                    translated_texts.extend([p.strip() for p in parts])
+                else:
+                    # In case Google altered delimiters, fall back to line splitting or chunk
+                    lines = [line.strip() for line in res.splitlines() if line.strip()]
+                    if len(lines) == len(chunk):
+                        translated_texts.extend(lines)
+                    else:
+                        translated_texts.extend([parts[0].strip() if parts else ""] * len(chunk))
 
             translated_blocks = []
             for idx, b in enumerate(blocks_list):
@@ -102,6 +151,14 @@ class TranslationService:
             return result
         except Exception as e:
             logger.error(f"Google Translate failed: {e}")
+            err_str = str(e)
+            if "لطفاً از موتور" in err_str:
+                raise RuntimeError(err_str)
+            if "too many requests" in err_str.lower() or "429" in err_str:
+                raise RuntimeError(
+                    "متن زیرنویس طولانی است و سرور گوگل پاسخ نداد. "
+                    "لطفاً از موتور ترجمه هوش مصنوعی (AI / Groq) استفاده کنید."
+                )
             raise RuntimeError(f"Google Translate error: {e}")
 
     async def translate_with_ai(self, srt_content: str) -> str:
