@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: clip-srt-bot-v2
+    name: subcraft
     env: docker
     dockerfilePath: ./Dockerfile
     healthCheckPath: /health

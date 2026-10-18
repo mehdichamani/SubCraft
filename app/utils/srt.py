@@ -171,7 +171,7 @@ def srt_to_lrc(srt_content: str, title: str = "", artist: str = "") -> str:
         lrc_lines.append(f"[ti:{title}]")
     if artist:
         lrc_lines.append(f"[ar:{artist}]")
-    lrc_lines.append("[by:Clip SRT Bot]")
+    lrc_lines.append("[by:SubCraft]")
     lrc_lines.append("")
 
     for b in blocks:

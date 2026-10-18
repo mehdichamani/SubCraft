@@ -1,5 +1,13 @@
 # تاریخچه تغییرات (Changelog)
 
+## [v0.8.0] - 1405-05-18
+### ری‌برندینگ و تغییر نام پروژه به SubCraft
+- **تغییر رسمی برند پروژه به SubCraft:** به‌روزرسانی عنوان رسمی پروژه، شناسنامه‌ها، متادیتاها و پیام‌های سیستمی از Clip SRT Bot به SubCraft.
+- **به‌روزرسانی تنظیمات و متغیرهای پیکربندی:** اصلاح مقدار پیش‌فرض `app_name` به `SubCraft` در ماژول تنظیمات ([app/config.py](file:///home/unreal/projects/clip-srt-vps/app/config.py)).
+- **به‌روزرسانی فایل‌های داکر و استقرار ابری:** تغییر نام سرویس و کانتینر در [docker-compose.yml](file:///home/unreal/projects/clip-srt-vps/docker-compose.yml) و [render.yaml](file:///home/unreal/projects/clip-srt-vps/render.yaml) به `subcraft`.
+- **به‌روزرسانی رابط‌های کاربری وب و خروجی‌ها:** هماهنگ‌سازی عنوان داشبورد مدیریت، صفحه `/about`، اندپوینت JSON متادیتا و تگ متادیتای هنرمند/تولیدکننده در خروجی صوتی لیریکس همگام (`[by:SubCraft]`).
+- **اصلاح و یکپارچه‌سازی مستندات:** به‌روزرسانی کامل مستندات انگلیسی و فارسی در [README.md](file:///home/unreal/projects/clip-srt-vps/README.md) و [COOKIE_FALLBACK.md](file:///home/unreal/projects/clip-srt-vps/COOKIE_FALLBACK.md).
+
 ## [v0.7.1] - 1405-05-17
 ### مستندسازی و آماده‌سازی راهنمای Fallback کوکی و دیتابیس
 - **تدوین و انتشار راهنمای جامع کوکی و پایداری (`COOKIE_FALLBACK.md`):** تشریح دقیق معماری Fail-Safe سیستم در شرایط قطعی دیتابیس Render، رفتار بخش‌های مختلف برنامه، اولویت‌بندی بارگذاری کوکی‌ها و راهنمای گام‌به‌گام تبدیل کوکی‌ها به Base64 در تمام سیستم‌عامل‌ها.

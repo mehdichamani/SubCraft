@@ -1,11 +1,11 @@
 version: '3.8'
 
 services:
-  clip-srt-bot:
+  subcraft:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: clip-srt-bot
+    container_name: subcraft
     restart: always
     ports:
       - "8000:8000"

@@ -1,4 +1,4 @@
-# Clip SRT Bot v2 🎬📝
+# SubCraft 🎬📝
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](https://www.python.org/)
@@ -16,7 +16,7 @@
 
 ### 🌟 Overview & Key Features
 
-**clip-srt-vps** is a lightweight, cloud-native Telegram bot and web service built with Python, FastAPI, and `python-telegram-bot`. It leverages state-of-the-art AI APIs (Groq Whisper, Google Gemini, OpenAI) and FFmpeg to extract audio, generate precise subtitle transcriptions, translate subtitles into fluent line-by-line Persian, and soft-embed subtitles into video clips on the fly.
+**SubCraft** is a lightweight, cloud-native Telegram bot and web service built with Python, FastAPI, and `python-telegram-bot`. It leverages state-of-the-art AI APIs (Groq Whisper, Google Gemini, OpenAI) and FFmpeg to extract audio, generate precise subtitle transcriptions, translate subtitles into fluent line-by-line Persian, and soft-embed subtitles into video clips on the fly.
 
 - **Cloud-Native AI Workloads:** Uses Groq Whisper (`whisper-large-v3`) for lightning-fast speech-to-text with word-level timestamps.
 - **Fluent Persian Translation:** Uses Groq AI (`openai/gpt-oss-120b`) for natural Persian translation with fallback to Google Gemini, while preserving exact `.srt` timing.
@@ -76,11 +76,11 @@ docker compose up -d --build
 version: '3.8'
 
 services:
-  clip-srt-bot:
+  subcraft:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: clip-srt-bot
+    container_name: subcraft
     restart: always
     ports:
       - "8000:8000"
@@ -94,14 +94,14 @@ services:
 
 ```bash
 # Build Docker image
-docker build -t clip-srt-vps .
+docker build -t subcraft .
 
 # Run container with environment file
 docker run -d \
-  --name clip-srt-bot \
+  --name subcraft \
   --env-file .env \
   -p 8000:8000 \
-  clip-srt-vps
+  subcraft
 ```
 
 ---
@@ -117,7 +117,7 @@ Render supports deploying this repository directly using **Docker** runtime buil
 4. Select **Docker** as the Environment / Runtime (Render automatically detects `Dockerfile`).
 
 #### Step 2: Configure YouTube & Instagram Cookies via Base64 Encoding
-Platforms like YouTube and Instagram require cookie authentication for `yt-dlp` download requests. Because multiline `cookies.txt` files can be corrupted when pasted directly into cloud environment variables, **clip-srt-vps supports Base64-encoded cookie strings**.
+Platforms like YouTube and Instagram require cookie authentication for `yt-dlp` download requests. Because multiline `cookies.txt` files can be corrupted when pasted directly into cloud environment variables, **SubCraft supports Base64-encoded cookie strings**.
 
 1. Generate a single-line Base64 string from your local `cookies.txt` or `combined_cookies.txt`:
    ```bash
@@ -168,7 +168,7 @@ Add the following Environment Variables in your Render Web Service settings:
 
 ### 🌟 معرفی پروژه و امکانات
 
-**clip-srt-vps** یک ربات تلگرام و سرویس ابری سبک و هوشمند است که با زبان پایتون، فریم‌ورک FastAPI و کتابخانه `python-telegram-bot` توسعه یافته است. این ربات با بهره‌گیری از هوش مصنوعی Groq Whisper، Google Gemini و FFmpeg، صدا را استخراج کرده، زیرنویس دقیق را تولید می‌کند، آن را به فارسی روان ترجمه کرده و زیرنویس سافت‌ساب را روی ویدیو متصل می‌نماید.
+**SubCraft** یک ربات تلگرام و سرویس ابری سبک و هوشمند است که با زبان پایتون، فریم‌ورک FastAPI و کتابخانه `python-telegram-bot` توسعه یافته است. این ربات با بهره‌گیری از هوش مصنوعی Groq Whisper، Google Gemini و FFmpeg، صدا را استخراج کرده، زیرنویس دقیق را تولید می‌کند، آن را به فارسی روان ترجمه کرده و زیرنویس سافت‌ساب را روی ویدیو متصل می‌نماید.
 
 - **تبدیل گفتار به متن هوشمند:** استفاده از Groq Whisper (`whisper-large-v3`) برای استخراج متن و زمان‌بندی دقیق زیرنویس.
 - **ترجمه فارسی روان:** ترجمه خط به خط با مدل هوش مصنوعی (`openai/gpt-oss-120b`) و مترجم گوگل با حفظ کامل زمان‌بندی فایل `.srt`.
@@ -221,11 +221,11 @@ docker compose up -d --build
 version: '3.8'
 
 services:
-  clip-srt-bot:
+  subcraft:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: clip-srt-bot
+    container_name: subcraft
     restart: always
     ports:
       - "8000:8000"
@@ -248,7 +248,7 @@ services:
 ۴. نوع محیط اجرا (Runtime) را روی **Docker** قرار دهید (Render به صورت خودکار `Dockerfile` موجود در مخزن را شناسایی می‌کند).
 
 #### گام دوم: تنظیم کوکی‌های یوتیوب و اینستاگرام با فرمت Base64
-دانلود از یوتیوب یا اینستاگرام ممکن است نیازمند کوکی‌های معتبر جهت احراز هویت `yt-dlp` باشد. از آنجا که فرمت چندخطی فایل `cookies.txt` ممکن است در متغیرهای محیطی سرورهای ابری بهم بریزد، پروژه **clip-srt-vps** به طور کامل از فرمت **Base64** پشتیبانی می‌کند.
+دانلود از یوتیوب یا اینستاگرام ممکن است نیازمند کوکی‌های معتبر جهت احراز هویت `yt-dlp` باشد. از آنجا که فرمت چندخطی فایل `cookies.txt` ممکن است در متغیرهای محیطی سرورهای ابری بهم بریزد، پروژه **SubCraft** به طور کامل از فرمت **Base64** پشتیبانی می‌کند.
 
 ۱. تبدیل فایل `cookies.txt` یا `combined_cookies.txt` به یک رشته تک‌خطی Base64:
    ```bash

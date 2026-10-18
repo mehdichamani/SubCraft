@@ -679,7 +679,7 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
             raw_audio_path = os.path.join(work_dir, "extracted_audio.mp3")
 
             # Generate Musicolet-compatible timestamped LRC text
-            lrc_content = srt_to_lrc(bilingual_srt, title=subject or "Clip Audio", artist=channel or "Clip SRT Bot")
+            lrc_content = srt_to_lrc(bilingual_srt, title=subject or "Clip Audio", artist=channel or "SubCraft")
             
             poster_path = os.path.join(work_dir, "poster.jpg")
             cover_path = poster_path if os.path.exists(poster_path) else None
@@ -689,7 +689,7 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
                 lrc_content=lrc_content,
                 output_mp3_path=output_mp3_path,
                 title=subject or "Clip Audio",
-                artist=channel or "Clip SRT Bot",
+                artist=channel or "SubCraft",
                 cover_path=cover_path
             )
 
@@ -702,7 +702,7 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
                         audio=mp3_file,
                         filename=sanitized_mp3_filename,
                         title=subject or "Clip Audio",
-                        performer=channel or "Clip SRT Bot",
+                        performer=channel or "SubCraft",
                         caption=caption,
                         thumbnail=thumb_file,
                         parse_mode="HTML"

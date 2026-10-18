@@ -50,7 +50,7 @@ def get_effective_admin_password() -> str:
 async def lifespan(app: FastAPI):
     """Lifespan context manager to handle Telegram Bot initialization & Webhook registration."""
     global ptb_app
-    logger.info("Starting up Clip SRT Bot v2...")
+    logger.info("Starting up SubCraft...")
     
     # Initialize / log effective admin password
     get_effective_admin_password()
@@ -120,7 +120,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Clip SRT Bot",
+    title="SubCraft",
     description="Cloud-native Telegram Bot for video subtitle generation and Persian translation",
     version=settings.app_version,
     lifespan=lifespan
@@ -136,7 +136,7 @@ async def get_translation_help():
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>راهنمای انتخاب موتور ترجمه | Clip SRT Bot</title>
+    <title>راهنمای انتخاب موتور ترجمه | SubCraft</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
     <style>
@@ -223,7 +223,7 @@ async def get_translation_help():
 
         <!-- Summary Footer -->
         <div class="text-center pt-2 border-t border-slate-800 text-xs text-slate-500">
-            Clip SRT Bot v2 • جهت بازگشت، این صفحه را ببندید و در تلگرام گزینه مورد نظر را انتخاب کنید.
+            SubCraft • جهت بازگشت، این صفحه را ببندید و در تلگرام گزینه مورد نظر را انتخاب کنید.
         </div>
     </div>
 </body>
@@ -254,7 +254,7 @@ async def about_page():
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>درباره پروژه | Clip SRT Bot v{settings.app_version}</title>
+    <title>درباره پروژه | SubCraft v{settings.app_version}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
     <style>
@@ -268,7 +268,7 @@ async def about_page():
             <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-3xl mb-1">
                 🎬
             </div>
-            <h1 class="text-2xl font-bold text-white">Clip SRT Bot</h1>
+            <h1 class="text-2xl font-bold text-white">SubCraft</h1>
             <div class="inline-block bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-semibold px-3 py-1 rounded-full">
                 نسخه Beta v{settings.app_version}
             </div>
@@ -312,7 +312,7 @@ async def about_page():
 
         <!-- Footer -->
         <div class="text-center pt-2 border-t border-slate-800 text-xs text-slate-500">
-            Clip SRT Bot • v{settings.app_version} Beta
+            SubCraft • v{settings.app_version} Beta
         </div>
     </div>
 </body>
@@ -324,7 +324,7 @@ async def about_page():
 async def api_about():
     """JSON API endpoint for system about metadata."""
     return {
-        "name": "Clip SRT Bot",
+        "name": "SubCraft",
         "version": settings.app_version,
         "environment": "beta",
         "developer": "Mehdi Chamani",
@@ -653,7 +653,7 @@ async def get_dashboard(
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>داشبورد مدیریت | Clip SRT Bot v{settings.app_version}</title>
+    <title>داشبورد مدیریت | SubCraft v{settings.app_version}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
     <style>
@@ -671,7 +671,7 @@ async def get_dashboard(
                 </div>
                 <div>
                     <h1 class="text-lg sm:text-xl font-bold text-white tracking-tight">داشبورد مدیریت و پایش ربات</h1>
-                    <p class="text-xs text-slate-400">Clip SRT Bot v{settings.app_version}</p>
+                    <p class="text-xs text-slate-400">SubCraft v{settings.app_version}</p>
                 </div>
             </div>
             <div class="flex items-center gap-3 text-xs text-slate-400 flex-wrap">
